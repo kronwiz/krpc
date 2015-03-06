@@ -31,31 +31,35 @@ Before delving into details it's important to say that if you use Python then al
 Let's start with the standard "hello world" example. This is a simple client:
 
 ```python
-	#!/usr/bin/env python3
-	# -*- coding: utf8 -*-
+    #!/usr/bin/env python3
+    # -*- coding: utf8 -*-
 
-	from krpc import KRPCClient, KRPCClientException
+    from krpc import KRPCClient, KRPCClientException
 
-	def main ():
-		c = KRPCClient ( "localhost", 8080 )
+    def main ():
+        c = KRPCClient ( "localhost", 8080 )
 
-		try:
-			result = c.echo ( "hello world" )
-			print ( result )
+        try:
+            result = c.echo ( "hello world" )
+            print ( result )
 
-		except KRPCClientException as e:
-			print ( "error: %s\nmessage:%s\ninfo:%s\n" % ( e.code, e.message, e.info ) )
+        except KRPCClientException as e:
+            print ( "error: %s\nmessage:%s\ninfo:%s\n" % ( e.code, e.message, e.info ) )
 
-	main ()
+    main ()
 ```
 
 You connect to a server by creating an instance of the KRPCClient class and specifying the server host and port:
 
-	c = KRPCClient ( "localhost", 8080 )
+```python
+    c = KRPCClient ( "localhost", 8080 )
+```
 
 The remote methods are called as methods of the KRPCClient instance:
 
-	result = c.echo ( "hello world" )
+```python
+    result = c.echo ( "hello world" )
+```
 
 If something goes wrong the KRPCClientException is raised. Its "args" attribute contains the error code, the error message and some additional info (if any).
 
@@ -64,41 +68,41 @@ If one of the method arguments is a file object then the protocol handles the up
 This is all you need to know as far as the client is concerned. And what about the server? This is the server implementing the "echo" method we called in the client:
 
 ```python
-	#!/usr/bin/env python3
-	# -*- coding: utf8 -*-
+    #!/usr/bin/env python3
+    # -*- coding: utf8 -*-
 
-	from krpc import KRPCServer
+    from krpc import KRPCServer
 
-	class TestClass ( object ):
-		def echo ( self, msg ):
-			return msg
+    class TestClass ( object ):
+        def echo ( self, msg ):
+            return msg
 
-	def main ():
-		server = KRPCServer ( "localhost", 8080 )
+    def main ():
+        server = KRPCServer ( "localhost", 8080 )
 
-		test_instance = TestClass ()
-		server.register_instance ( test_instance )
+        test_instance = TestClass ()
+        server.register_instance ( test_instance )
 
-		print ( 'Starting server, use <Ctrl-C> to stop' )
-		#server.serve_forever ()
+        print ( 'Starting server, use <Ctrl-C> to stop' )
+        #server.serve_forever ()
 
-		quit = False
-		while not quit:
-			server.handle_request ()
+        quit = False
+        while not quit:
+            server.handle_request ()
 
-	main ()
+    main ()
 ```
 
 To create a server you have to create an instance of the KRPCServer class specifying the host and the port to which clients should connect:
 
 ```python
-	server = KRPCServer ( "localhost", 8080 )
+    server = KRPCServer ( "localhost", 8080 )
 ```
 
 The server publishes all the methods contained in the object that is passed to the server "register\_instance" method:
 
 ```python
-	server.register_instance ( class_instance )
+    server.register_instance ( class_instance )
 ```
 
 In the example above the object is an instance of TestClass and this class contains only one method named "echo": this method returns the value passed in the "msg" parameter (well, it's not that useful but it's simple).
