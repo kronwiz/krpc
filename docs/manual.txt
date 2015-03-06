@@ -1,0 +1,246 @@
+﻿.. MANUAL.txt
+   vim: tw=80
+
+===========
+Krpc manual
+===========
+
+This document contains the description of the classes and methods that
+constitute the krpc protocol. The examples are contained in the README.txt file
+and in the "examples" directory.
+
+
+KRPCServer
+==========
+
+The ``KRPCServer`` class is used to create a server. 
+
+Usually the actions to be taken are:
+
+1. create a new sever instance;
+
+2. use the server's `register_instance`_ method to attach an object whose
+   methods the server will publish;
+
+3. start the server with one of the two methods `serve_forever`_ or
+   `handle_request`_.
+
+Remember that this class implements a forking request handler, that is to say
+every request is handled in a separate process.
+
+
+KRPCServer
+----------
+
+Syntax: ``KRPCServer ( host, port )``
+
+This is the class constructor: it creates a new server instance but it doesn't
+start the server immediately. It takes the following parameters:
+
+- host: string representing the name or the IP address of the machine on which
+  the server should run;
+- port: integer number representing the port on which the server should listen.
+
+If you want the system to assign a random port to the server you can use 0 as
+the port number; you can then read the assigned port from the ``server_address``
+attribute of the ``KRPCServer`` instance.
+
+
+register_instance
+-----------------
+
+Syntax: ``register_instance ( instance )``
+
+This method is used to attach an object instance to the server. The server
+publishes all the methods contained in such an instance.
+
+So when you call a method on the server you are actually calling a method on
+this object instance because the serve doesn't have methods on its own.
+
+
+set_pre_method_hook_name
+------------------------
+
+Syntax: ``set_pre_method_hook_name ( method_name )``
+
+With this hook, when the server receives a method call it calls the method
+specified with ``method_name`` *before* calling the actual method it received in
+the request. In other words the sequence of events is like this:
+
+1. the server receives a request;
+2. the server calls the object instance method with name method_name;
+3. the server calls the method specified in the request.
+
+The ``method_name`` parameter is a string with the name of the method to call,
+not the actual method. The latter is contained in the object instance  bound to
+the server.
+
+This hook can be used, for example, to update a session every time the server
+receives a request without the need to replicate the call to update the session
+in every method.
+
+The pre_method_hook method can have some params: they are specified by the
+client using the `set_pre_method_hook_params`_ client's method.
+
+
+serve_forever
+-------------
+
+Syntax: ``serve_forever ()``
+
+When this method is called the server starts listening for requests on the port
+specified in the constructor. To stop the server press Ctrl+C or send a more
+strong signal.
+
+
+handle_request
+--------------
+
+Syntax: ``handle_request ()``
+
+When this method is called the server waits for only one incoming request and
+when it arrives it is processed as usual. If you want to process more than one
+request you have to call this method in a loop.
+
+
+Server exceptions
+=================
+
+From the client's point of view they are all ``KRPCClientException`` instances
+with the same code and message and (optional) info fields as the corresponding
+server exception.
+
+The ``KRPCClientException`` class has the following fields:
+
+- ``code``: a number identifying the error type (see below);
+- ``message``: the error description;
+- ``info``: an optional attribute containing more details about the error.
+
+
+Error types
+-----------
+
+For each error type the following list contains the name of the constant used in
+the exception ``code`` field and the description found in the exception
+``message`` field.
+
+- ERR_SRV_INVALID_REQUEST: "Invalid request." - The method to be executed has not
+  been specified in the request. This error can arise only from a bug in the
+  client implementation;
+- ERR_SRV_JSON_DECODING: "Parse error." - The request JSON structure cannot be
+  understood (because of syntax errors or other types of errors). This error can
+  arise only from a bug in the client implementation;
+- ERR_SRV_METHOD_NOT_FOUND: "Method not found." - The requested method doesn't exist
+  on the server or is not callable;
+- ERR_SRV_METHOD_EXCEPTION: "Method call raised an exception." - The method that has
+  been executed raised and exception; the server exception traceback is returned
+  in the ``KRPCClientException`` ``info`` attribute;
+- ERR_SRV_UNHANDLED_EXCEPTION: "Unhandled exception." - This error should never
+  happen because all exceptions must be handled as described above, but who
+  knows...
+- ERR_SRV_MISSING_FILE_OBJECT: "Missing file object." - This happens when an
+  uploaded file is referenced in the JSON part of the protocol but it's missing
+  from the multipart message; in other words: we told the server that there should
+  be a file but the file it's not there. This error can arise only from a bug in
+  the client implementation;
+- ERR_SRV_JSON_ENCODING: "Object is not JSON serializable." - The return value of a
+  method is not JSON serializable and so it cannot be returned to the client.
+
+
+Managed exceptions
+------------------
+
+If a server side exception has its ``managed`` attribute set to ``True`` then
+the server doesn't raise an exception and the client doesn't re-raise it as a
+``KRPCClientException`` instance with code ``ERR_SRV_METHOD_EXCEPTION``. Instead
+your method returns normally and the return value is a dictionary with the
+following structure::
+
+  {'error':
+    {'code': 'original exception code',
+     'message': 'original exception message attribute',
+     'info': 'original exception info attribute'}
+  }
+
+So at the first level there's a ``error`` key associated with a dictionary
+having the usual fields:
+
+- ``code``: the value is copied from the original exception ``code`` attribute,
+  or is set to -1 if there's no such attribute;
+- ``message``: the value is copied from the original exception ``message``
+  attribute, or set to an empty string if there's no such attribute;
+- ``info``: the value is copied from the original exception ``info`` field or it
+  doesn't exist if there's no such attribute.
+
+For an example see the server implementation in the ``examples`` directory.
+
+
+KRPCClient
+==========
+
+The KRPCClient class is used to create a client.
+
+
+KRPCClient
+----------
+
+Syntax: ``KRPCClient ( server_name, server_port )``
+
+This is the class constructor: it creates a client but it doesn't call the
+server until a method is requested. The parameters are:
+
+- server_name: string representing the name or the IP address of the machine on
+  which runs the server to connect to;
+- server_port: integer number representing the port on which listens the server
+  to connect to.
+
+
+set_pre_method_hook_params
+--------------------------
+
+Syntax: ``set_pre_method_hook_params ( params )``
+
+This method is used to set the parametes that are passed to the pre_method_hook
+method (see the server `set_pre_method_hook_name`_ method for an explanation).
+The ``params`` argument is a dictionary with the parameters to be passed as
+keys.
+
+
+Other methods are from the server
+---------------------------------
+
+The ``KRPCClient`` object has no other methods, but you can call on it all the
+methods exposed by the server to which it's connected. There are some rules that
+must be followed:
+
+- methods cannot have both positional and keyword arguments: you can use either
+  one or the other. This is obviously reflected in the signature of your server
+  side methods;
+- if an object passed in a method parameter has the attribute "read" it's
+  supposed to be a file-like object so it's queued for upload;
+- if `set_pre_method_hook_params`_ method has been used to set something then
+  these parameters are used by the pre_method_hook method in the server.
+
+
+Client exceptions
+=================
+
+All exceptions are instances of The ``KRPCClientException`` class and have the
+following fields:
+
+- ``code``: a number identifying the error type (see below);
+- ``message``: the error description;
+- ``info``: an optional attribute containing more details about the error.
+
+
+Error types
+-----------
+
+- ERR_REQUEST: "Request error" - The client cannot send the request to the
+  server. This is usually caused by a network error, or maybe because the server
+  is down. The system ``errno`` and ``strerror`` error description are contained
+  in the exception's ``info`` field.
+- ERR_JSON_PARSE: "Error parsing JSON" - The server returned something that is
+  not a valid JSON object. This is usually a protocol error and hopefully should
+  never happen.
+
