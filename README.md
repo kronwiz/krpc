@@ -30,6 +30,7 @@ Before delving into details it's important to say that if you use Python then al
 
 Let's start with the standard "hello world" example. This is a simple client:
 
+```python
 	#!/usr/bin/env python3
 	# -*- coding: utf8 -*-
 
@@ -46,7 +47,7 @@ Let's start with the standard "hello world" example. This is a simple client:
 			print ( "error: %s\nmessage:%s\ninfo:%s\n" % ( e.code, e.message, e.info ) )
 
 	main ()
-
+```
 
 You connect to a server by creating an instance of the KRPCClient class and specifying the server host and port:
 
@@ -62,6 +63,7 @@ If one of the method arguments is a file object then the protocol handles the up
 
 This is all you need to know as far as the client is concerned. And what about the server? This is the server implementing the "echo" method we called in the client:
 
+```python
 	#!/usr/bin/env python3
 	# -*- coding: utf8 -*-
 
@@ -85,19 +87,23 @@ This is all you need to know as far as the client is concerned. And what about t
 			server.handle_request ()
 
 	main ()
-
+```
 
 To create a server you have to create an instance of the KRPCServer class specifying the host and the port to which clients should connect:
 
+```python
 	server = KRPCServer ( "localhost", 8080 )
+```
 
-The server publishes all the methods contained in the object that is passed to the server "register_instance" method:
+The server publishes all the methods contained in the object that is passed to the server "register\_instance" method:
 
+```python
 	server.register_instance ( class_instance )
+```
 
 In the example above the object is an instance of TestClass and this class contains only one method named "echo": this method returns the value passed in the "msg" parameter (well, it's not that useful but it's simple).
 
-The server is started by calling the "serve_forever" method or, if you need more control, by writing a loop in which you call the "handle_request" method that waits until a request is received and handles it. By the way: when a request arrives the server forks a new process to handle it, so requests are handled in parallel.
+The server is started by calling the "serve\_forever" method or, if you need more control, by writing a loop in which you call the "handle\_request" method that waits until a request is received and handles it. By the way: when a request arrives the server forks a new process to handle it, so requests are handled in parallel.
 
 More documentation is contained in the "docs" directory:
 
